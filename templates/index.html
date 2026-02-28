@@ -1,21 +1,186 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Morse Vision{% endblock %}
+{% block header_title %}Morse Vision{% endblock %}
 
-{% block header_title %}Welcome to FlaskMeridian{% endblock %}
+{% block extra_css %}
+<style>
+    /* Override base container styling */
+    main.container {
+        max-width: none;
+        padding: 0;
+        background: #0f172a;
+        height: calc(100vh - 160px);
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    .page-wrapper {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        height: 100%;
+    }
+
+    /* Camera */
+    .camera-section {
+        background: black;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .camera-section video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Accessible Morse Legend */
+    .legend-section {
+        background: #111827;
+        color: white;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-family: system-ui, sans-serif;
+    }
+
+    .legend-title {
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 12px;
+    }
+
+    .legend-block {
+        margin-bottom: 18px;
+    }
+
+    .legend-block h3 {
+        font-size: 14px;
+        margin-bottom: 8px;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .morse-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+
+    .morse-item {
+        background: #1f2937;
+        padding: 10px 6px;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .morse-letter {
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 4px;
+    }
+
+    .morse-code {
+        font-size: 16px;
+        letter-spacing: 4px;
+        font-family: monospace;
+        color: #93c5fd;
+    }
+
+    @media (max-width: 900px) {
+        .page-wrapper {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h2>Your Flask Application is Running!</h2>
-<p>Your Flask application has been successfully set up with FlaskMeridian.</p>
+<div class="page-wrapper">
 
-<h3>Next Steps:</h3>
-<ul>
-    <li>Define your models in <code>db/models.py</code></li>
-    <li>Create route blueprints in <code>routes/</code></li>
-    <li>Add business logic in <code>services/</code></li>
-    <li>Style your app in <code>static/css/style.css</code></li>
-    <li>Add interactivity in <code>static/js/script.js</code></li>
-</ul>
+    <div class="camera-section">
+        <video id="camera" autoplay playsinline></video>
+    </div>
 
-<p><strong>Happy building! 🚀</strong></p>
+    <div class="legend-section">
+        <div>
+            <div class="legend-title">Morse Code Reference</div>
+
+            <div class="legend-block">
+                <h3>Letters</h3>
+                <div class="morse-grid" id="lettersGrid"></div>
+            </div>
+
+            <div class="legend-block">
+                <h3>Numbers</h3>
+                <div class="morse-grid" id="numbersGrid"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const morseCode = {
+        A: ".-", B: "-...", C: "-.-.", D: "-..",
+        E: ".", F: "..-.", G: "--.", H: "....",
+        I: "..", J: ".---", K: "-.-", L: ".-..",
+        M: "--", N: "-.", O: "---", P: ".--.",
+        Q: "--.-", R: ".-.", S: "...", T: "-",
+        U: "..-", V: "...-", W: ".--", X: "-..-",
+        Y: "-.--", Z: "--..",
+        0: "-----", 1: ".----", 2: "..---",
+        3: "...--", 4: "....-", 5: ".....",
+        6: "-....", 7: "--...", 8: "---..",
+        9: "----."
+    };
+
+    const lettersGrid = document.getElementById("lettersGrid");
+    const numbersGrid = document.getElementById("numbersGrid");
+
+    function convertToSymbols(code) {
+        return code
+            .replace(/\./g, "· ")
+            .replace(/-/g, "– ")
+            .trim();
+    }
+
+    Object.entries(morseCode).forEach(([char, code]) => {
+        const div = document.createElement("div");
+        div.className = "morse-item";
+
+        const readable = convertToSymbols(code);
+
+        div.innerHTML = `
+            <div class="morse-letter">${char}</div>
+            <div class="morse-code">${readable}</div>
+        `;
+
+        // Screen reader friendly fallback
+        div.setAttribute("aria-label", `${char} in morse code is ${code}`);
+
+        if (isNaN(char)) {
+            lettersGrid.appendChild(div);
+        } else {
+            numbersGrid.appendChild(div);
+        }
+    });
+
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById("camera").srcObject = stream;
+        } catch (err) {
+            alert("Camera access denied or unavailable.");
+        }
+    }
+
+    startCamera();
+</script>
 {% endblock %}
