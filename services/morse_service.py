@@ -139,7 +139,7 @@ class MorseBlinkDetector:
             smooth_ratio: Current smoothed EAR value
             baseline: Baseline EAR for this session
         """
-        blink_threshold = 4
+        blink_threshold = 4.5
 
         with self.lock:
             if (baseline - smooth_ratio) > blink_threshold:
