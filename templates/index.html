@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* Override base container styling */
     main.container {
         max-width: none;
         padding: 0;
@@ -35,60 +34,50 @@
         object-fit: cover;
     }
 
-    /* Accessible Morse Legend */
+    /* Compact Accessible Legend */
     .legend-section {
         background: #111827;
         color: white;
-        padding: 20px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
         font-family: system-ui, sans-serif;
     }
 
     .legend-title {
         text-align: center;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: bold;
-        margin-bottom: 12px;
-    }
-
-    .legend-block {
-        margin-bottom: 18px;
-    }
-
-    .legend-block h3 {
-        font-size: 14px;
-        margin-bottom: 8px;
-        opacity: 0.7;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        margin-bottom: 10px;
     }
 
     .morse-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
         gap: 8px;
     }
 
     .morse-item {
         background: #1f2937;
-        padding: 10px 6px;
+        padding: 6px 4px;
         border-radius: 6px;
         text-align: center;
     }
 
     .morse-letter {
         font-weight: bold;
-        font-size: 18px;
-        margin-bottom: 4px;
+        font-size: 16px;
+        margin-bottom: 3px;
     }
 
     .morse-code {
-        font-size: 16px;
-        letter-spacing: 4px;
+        font-size: 15px;
         font-family: monospace;
         color: #93c5fd;
+        display: inline-flex;
+        gap: 4px; /* natural spacing between symbols */
+        justify-content: center;
     }
 
     @media (max-width: 900px) {
@@ -107,19 +96,8 @@
     </div>
 
     <div class="legend-section">
-        <div>
-            <div class="legend-title">Morse Code Reference</div>
-
-            <div class="legend-block">
-                <h3>Letters</h3>
-                <div class="morse-grid" id="lettersGrid"></div>
-            </div>
-
-            <div class="legend-block">
-                <h3>Numbers</h3>
-                <div class="morse-grid" id="numbersGrid"></div>
-            </div>
-        </div>
+        <div class="legend-title">Morse Code Reference</div>
+        <div class="morse-grid" id="morseGrid"></div>
     </div>
 
 </div>
@@ -141,35 +119,28 @@
         9: "----."
     };
 
-    const lettersGrid = document.getElementById("lettersGrid");
-    const numbersGrid = document.getElementById("numbersGrid");
+    const grid = document.getElementById("morseGrid");
 
     function convertToSymbols(code) {
         return code
-            .replace(/\./g, "· ")
-            .replace(/-/g, "– ")
-            .trim();
+            .replace(/\./g, "·")
+            .replace(/-/g, "–")
+            .split("")
+            .map(symbol => `<span>${symbol}</span>`)
+            .join("");
     }
 
     Object.entries(morseCode).forEach(([char, code]) => {
         const div = document.createElement("div");
         div.className = "morse-item";
 
-        const readable = convertToSymbols(code);
-
         div.innerHTML = `
             <div class="morse-letter">${char}</div>
-            <div class="morse-code">${readable}</div>
+            <div class="morse-code">${convertToSymbols(code)}</div>
         `;
 
-        // Screen reader friendly fallback
         div.setAttribute("aria-label", `${char} in morse code is ${code}`);
-
-        if (isNaN(char)) {
-            lettersGrid.appendChild(div);
-        } else {
-            numbersGrid.appendChild(div);
-        }
+        grid.appendChild(div);
     });
 
     async function startCamera() {
