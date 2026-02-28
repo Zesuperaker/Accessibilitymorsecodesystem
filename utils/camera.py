@@ -1,7 +1,10 @@
 """Camera utilities for video capture and processing"""
 import cv2
 import threading
-from flask import current_app
+import logging
+
+# Use regular logging instead of current_app.logger
+logger = logging.getLogger(__name__)
 
 
 class CameraManager:
@@ -44,14 +47,14 @@ class CameraManager:
                         # Reduce latency
                         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         self.camera = cap
-                        current_app.logger.info(f"Camera initialized on device {i}")
+                        logger.info(f"Camera initialized on device {i}")
                         return self.camera
                 except Exception as e:
-                    current_app.logger.warning(f"Failed to initialize camera {i}: {e}")
+                    logger.warning(f"Failed to initialize camera {i}: {e}")
                     continue
 
             error_msg = "Could not find a functional camera. Check permissions and device availability."
-            current_app.logger.error(error_msg)
+            logger.error(error_msg)
             raise RuntimeError(error_msg)
 
     def release_camera(self):
@@ -60,9 +63,9 @@ class CameraManager:
             if self.camera is not None:
                 try:
                     self.camera.release()
-                    current_app.logger.info("Camera released successfully")
+                    logger.info("Camera released successfully")
                 except Exception as e:
-                    current_app.logger.error(f"Error releasing camera: {e}")
+                    logger.error(f"Error releasing camera: {e}")
                 finally:
                     self.camera = None
 
