@@ -1,4 +1,5 @@
 """FlaskMeridian Application with Flask-Security-Too Authentication"""
+import os
 from flask import Flask
 from flask_security import Security, SQLAlchemyUserDatastore
 from db.database import init_db, db
@@ -14,19 +15,19 @@ def create_app(config=None):
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Flask-Security configuration
-    app.config['SECRET_KEY'] = 'change-me-in-production'  # Use: python -c "import secrets; print(secrets.token_urlsafe(32))"
-    app.config['SECURITY_PASSWORD_SALT'] = 'change-me-in-production'  # Use: python -c "import secrets; print(secrets.token_urlsafe(32))"
-    
+    # Flask-Security configuration - load from environment variables
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
+    app.config['SECURITY_PASSWORD_SALT'] = os.getenv('SECURITY_PASSWORD_SALT', 'dev-salt-change-in-production')
+
     # Password hashing configuration - use argon2
     app.config['SECURITY_PASSWORD_SCHEMES'] = ['argon2']
     app.config['SECURITY_DEPRECATED_PASSWORD_SCHEMES'] = []
-    
+
     # Enable registration
     app.config['SECURITY_REGISTERABLE'] = True
     app.config['SECURITY_CONFIRMABLE'] = False
     app.config['SECURITY_RECOVERABLE'] = False
-    
+
     # Disable email sending for development (no Flask-Mail needed!)
     # Set to True in production if you have Flask-Mail configured
     app.config['SECURITY_SEND_REGISTER_EMAIL'] = False
