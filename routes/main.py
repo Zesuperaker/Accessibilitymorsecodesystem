@@ -6,8 +6,8 @@ main_bp = Blueprint('main', __name__, url_prefix='/')
 
 @main_bp.route('/')
 def index():
-    """Homepage route"""
-    return render_template('index.html')
+    """Homepage route - serves the new home page"""
+    return render_template('home.html')
 
 
 @main_bp.route('/health')
