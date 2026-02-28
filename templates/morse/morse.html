@@ -5,419 +5,269 @@
 
 {% block extra_css %}
 <style>
+    /* Base Setup */
     html, body {
         height: 100%;
         margin: 0;
         overflow: hidden;
+        background: #0a0c10;
+        color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
     main.container {
         height: 100vh;
         max-width: none;
         padding: 0;
-        background: #0f172a;
-        box-shadow: none;
-        border-radius: 0;
+        background: #0a0c10;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Modern Glass Header */
+    .global-header {
+        display: flex;
+        gap: 20px;
+        padding: 20px 25px;
+        background: rgba(16, 20, 28, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .status-box {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px 18px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        flex: 1;
+        transition: border 0.3s ease;
+    }
+
+    .status-label {
+        color: #00d4ff;
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .status-value {
+        font-size: 18px;
+        font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
+        color: #ffffff;
     }
 
     .page-wrapper {
         display: grid;
-        grid-template-columns: 2fr 1fr;
-        height: 100%;
+        grid-template-columns: 0.5fr 0.5fr;
+        flex: 1;
+        min-height: 0; /* important for flex/grid children */
     }
 
     /* Camera Section */
     .camera-section {
-        background: black;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: #000;
         position: relative;
         overflow: hidden;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .camera-section img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        opacity: 0.9;
     }
 
-    .camera-overlay {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 15px;
-        border-radius: 8px;
-        color: white;
-        font-family: monospace;
-        font-size: 14px;
-        max-width: 300px;
-        border-left: 3px solid #3b82f6;
-    }
-
-    .overlay-label {
-        font-size: 11px;
-        opacity: 0.7;
-        margin-bottom: 4px;
-        text-transform: uppercase;
-        font-weight: 600;
-    }
-
-    .overlay-value {
-        font-size: 16px;
-        font-weight: bold;
-        color: #93c5fd;
-        margin-bottom: 10px;
-    }
-
-    /* Legend Section */
+    /* Legend / Sidebar Section */
     .legend-section {
-        background: #111827;
-        color: white;
-        padding: 12px 16px;
+        background: #0f141e;
+        padding: 24px;
         display: flex;
         flex-direction: column;
-        font-family: system-ui, sans-serif;
-        height: 100%;
-        box-sizing: border-box;
-        overflow-y: auto;
+        min-height: 0; /* fix clipping in flex/grid */
+        overflow: visible; /* allow Morse code to always expand */
     }
 
     .legend-title {
-        text-align: center;
-        font-size: 17px;
-        font-weight: bold;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 20px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 20px;
+        letter-spacing: -0.5px;
+        flex: 0 0 auto;
     }
 
-    /* Control Buttons */
+    /* Enhanced Button Styling */
     .controls-section {
         display: flex;
-        gap: 8px;
-        margin-bottom: 15px;
+        gap: 10px;
+        margin-bottom: 20px;
     }
 
     .btn-morse {
         flex: 1;
-        padding: 8px 12px;
+        padding: 12px;
         border: none;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.3s;
-        text-align: center;
-    }
-
-    .btn-start {
-        background-color: #10b981;
-        color: white;
-    }
-
-    .btn-start:hover:not(:disabled) {
-        background-color: #059669;
-        transform: scale(1.05);
-    }
-
-    .btn-pause {
-        background-color: #f59e0b;
-        color: white;
-    }
-
-    .btn-pause:hover:not(:disabled) {
-        background-color: #d97706;
-        transform: scale(1.05);
-    }
-
-    .btn-reset {
-        background-color: #ef4444;
-        color: white;
-    }
-
-    .btn-reset:hover:not(:disabled) {
-        background-color: #dc2626;
-        transform: scale(1.05);
-    }
-
-    .btn-morse:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Send Button */
-    .send-btn {
-        width: 100%;
-        padding: 8px 12px;
-        background-color: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        margin-bottom: 15px;
-    }
-
-    .send-btn:hover:not(:disabled) {
-        background-color: #2563eb;
-        transform: translateY(-1px);
-    }
-
-    .send-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Status Display */
-    .status-box {
-        background: #1f2937;
-        padding: 10px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        border-left: 3px solid #3b82f6;
-    }
-
-    .status-label {
-        font-size: 11px;
-        opacity: 0.7;
-        margin-bottom: 3px;
-        text-transform: uppercase;
-        font-weight: 600;
-    }
-
-    .status-value {
-        font-size: 14px;
-        font-weight: bold;
-        font-family: monospace;
-        color: #93c5fd;
-        word-break: break-all;
-    }
-
-    /* Legend Grid */
-    .section-label {
-        font-size: 11px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        opacity: 0.7;
+        transition: all 0.2s ease;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
 
+    .btn-start { background: #10b981; color: white; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
+    .btn-pause { background: #f59e0b; color: white; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); }
+    .btn-reset { background: #ef4444; color: white; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3); }
+    
+    .btn-morse:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn-morse:active { transform: translateY(0); }
+
+    /* The Nicer Morse Grid */
+    .section-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin: 15px 0 10px 0;
+    }
+
+    .morse-header {
+        display: flex;       
+        justify-content: space-between; 
+        align-items: center;     
+        margin-bottom: 10px;  
+        gap: 10px;
+    }
+
     .morse-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        margin-bottom: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
     }
 
     .morse-item {
-        background: #1f2937;
-        padding: 6px 3px;
-        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 10px 5px;
+        border-radius: 12px;
         text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .morse-item:hover {
+        background: rgba(0, 212, 255, 0.08);
+        border-color: rgba(0, 212, 255, 0.5);
+        transform: scale(1.05);
     }
 
     .morse-letter {
-        font-weight: bold;
-        font-size: 13px;
+        font-weight: 800;
+        font-size: 16px;
+        color: #ffffff;
         margin-bottom: 2px;
     }
 
     .morse-code {
-        font-size: 11px;
-        font-family: monospace;
-        color: #93c5fd;
-        display: inline-block;
+        font-size: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        color: #00d4ff; /* Neon cyan code */
         letter-spacing: 1px;
     }
 
     .divider {
         height: 1px;
-        background: rgba(255, 255, 255, 0.1);
-        margin: 10px 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        margin: 15px 0;
     }
 
-    /* Chat History */
-    .chat-section {
-        margin-top: 15px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        padding-top: 10px;
-    }
-
-    .chat-history {
-        background: #1f2937;
-        border-radius: 4px;
-        padding: 8px;
-        max-height: 150px;
-        overflow-y: auto;
-        font-size: 11px;
-    }
-
-    .chat-message {
-        margin-bottom: 6px;
-        padding: 6px;
-        border-radius: 3px;
-        word-wrap: break-word;
-    }
-
-    .chat-user {
-        background: #3b82f6;
-        color: white;
-        text-align: right;
-    }
-
-    .chat-ai {
-        background: #10b981;
-        color: white;
-        text-align: left;
-    }
-
-    .empty-chat {
-        text-align: center;
-        opacity: 0.5;
-        padding: 10px;
-    }
-
-    /* Auto-reset notification */
+    /* Auto-reset Notification */
     .auto-reset-banner {
-        background: #8b5cf6;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        color: #a78bfa;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
         font-size: 12px;
-        display: none;
-        text-align: center;
-        font-weight: 600;
-        animation: slideDown 0.3s ease;
+        font-weight: 500;
+        flex: 1 1 auto;
     }
 
-    .auto-reset-banner.show {
-        display: block;
-    }
-
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #1f2937;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #3b82f6;
-        border-radius: 3px;
-    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
 
     /* Responsive */
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
         .page-wrapper {
             grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr;
+            grid-template-rows: auto auto; /* allow natural growth */
         }
-
-        .legend-section {
-            max-height: 40vh;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .morse-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    @media (max-width: 600px) {
-        .morse-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .controls-section {
-            flex-direction: column;
+        .legend-section { 
+            overflow: visible;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="global-header">
+    <div class="status-box">
+        <div class="status-label">Decoded Word</div>
+        <div class="status-value" id="decodedWord">—</div>
+    </div>
+
+    <div class="status-box">
+        <div class="status-label">Morse Pattern</div>
+        <div class="status-value" id="morsePattern">—</div>
+    </div>
+</div>
+
 <div class="page-wrapper">
 
-    <!-- Camera Feed Section -->
     <div class="camera-section">
         <img id="videoStream" src="{{ url_for('morse.video_feed') }}" alt="Video stream">
 
-        <!-- Camera Overlay with Status -->
-        <div class="camera-overlay">
+        <!-- <div class="camera-overlay">
             <div class="overlay-label">Current Word:</div>
             <div class="overlay-value" id="overlayWord">—</div>
             <div class="overlay-label">Morse Signal:</div>
             <div class="overlay-value" id="overlayMorse">—</div>
-        </div>
+        </div> -->
     </div>
 
-    <!-- Legend & Control Section -->
     <div class="legend-section">
-        <div class="legend-title">Morse Code Detector</div>
+        <div class="morse-header">
+            <div class="legend-title">Morse Code Detector</div>
 
-        <!-- Auto-reset notification banner -->
-        <div class="auto-reset-banner" id="autoResetBanner">
-            📢 Auto-reset: Word spoken after 5 seconds of inactivity
+            <div class="auto-reset-banner" id="autoResetBanner">
+                Auto-reset: Word spoken after 5 seconds of inactivity
+            </div>
         </div>
 
-        <!-- Control Buttons -->
         <div class="controls-section">
             <button class="btn-morse btn-start" id="startBtn" onclick="startDetection()">Start</button>
             <button class="btn-morse btn-pause" id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
             <button class="btn-morse btn-reset" id="resetBtn" onclick="resetDecoder()" disabled>Reset</button>
         </div>
 
-        <!-- Send to AI Button -->
-        <button class="send-btn" id="sendBtn" onclick="sendToAI()" disabled>Send to AI</button>
-
-        <!-- Status Display -->
-        <div class="status-box">
-            <div class="status-label">Decoded Word</div>
-            <div class="status-value" id="decodedWord">—</div>
-        </div>
-
-        <div class="status-box">
-            <div class="status-label">Morse Pattern</div>
-            <div class="status-value" id="morsePattern">—</div>
-        </div>
-
-        <!-- Divider -->
         <div class="divider"></div>
 
-        <!-- Letters Reference -->
         <div class="section-label">Letters</div>
         <div class="morse-grid" id="lettersGrid"></div>
 
-        <!-- Numbers Reference -->
         <div class="section-label">Numbers</div>
         <div class="morse-grid" id="numbersGrid"></div>
 
-        <!-- Chat History -->
-        <div class="chat-section">
-            <div class="section-label">Conversation</div>
-            <div class="chat-history" id="chatHistory">
-                <div class="empty-chat">No messages yet</div>
-            </div>
-        </div>
     </div>
 
 </div>
