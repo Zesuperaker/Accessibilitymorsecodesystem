@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: accessibility-morse-code
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    branch: master
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.1
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SECURITY_PASSWORD_SALT
+        generateValue: true
+      - key: MISTRAL_API_KEY
+        sync: false
