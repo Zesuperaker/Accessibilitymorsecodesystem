@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iris | AI-Driven Assistive Vision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/scrollreveal"></script>
+
+    <style>
+        :root {
+            --primary: #00d4ff;
+            --bg-start: #050609;
+            --bg-end: #0a111e;
+            --text: #ffffff;
+            --glass: rgba(255, 255, 255, 0.04);
+            --step-num: rgba(0, 212, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-start);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+            transition: background 0.5s ease;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- NAV --- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 90%;
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0.7rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        /* --- HERO --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0 10%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -3px;
+        }
+
+        h1 span {
+            color: var(--primary);
+            text-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+        }
+
+        .hero p {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            max-width: 600px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        /* --- VISION SECTION --- */
+        .vision-section {
+            padding: 10rem 10%;
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.02) 0%, transparent 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .vision-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 6rem;
+        }
+
+        .vision-content h2 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+        }
+
+        .vision-content p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2rem;
+        }
+
+        .sdg-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .sdg-item {
+            padding: 1rem;
+            border-left: 3px solid var(--primary);
+            background: rgba(255, 255, 255, 0.02);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .sdg-item:hover {
+            background: rgba(0, 212, 255, 0.05);
+            transform: translateX(10px);
+        }
+
+        /* --- HOW IT WORKS --- */
+        .section-header {
+            padding: 8rem 10% 4rem 10%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+            padding: 0 10% 8rem 10%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .step-card {
+            background: var(--glass);
+            padding: 4rem 3rem 3rem 3rem;
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .step-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .step-num-bg {
+            position: absolute;
+            top: -20px;
+            right: -10px;
+            font-size: 10rem;
+            font-weight: 900;
+            color: var(--step-num);
+            pointer-events: none;
+            z-index: -1;
+            transition: 0.4s;
+        }
+
+        .step-card:hover .step-num-bg {
+            color: rgba(0, 212, 255, 0.2);
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        /* --- CAPABILITIES GRID --- */
+        .caps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            padding: 0 10% 10rem 10%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .cap-card {
+            background: rgba(0, 212, 255, 0.02);
+            padding: 2.5rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: 0.4s;
+        }
+
+        /* Cursor Spotlight effect */
+        .cap-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(400px circle at var(--mouse-x) var(--mouse-y), rgba(0, 212, 255, 0.1), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .cap-card:hover::before {
+            opacity: 1;
+        }
+
+        .cap-card:hover {
+            border-color: var(--primary);
+            transform: scale(1.02);
+            background: rgba(0, 212, 255, 0.04);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #000;
+            padding: 1.2rem 3.5rem;
+            border-radius: 100px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+            display: inline-block;
+            transition: 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.5);
+        }
+
+        .btn-primary-nav {
+            background: var(--primary);
+            color: #000;
+            padding: 0.6rem 1.8rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 1000px) {
+            .vision-container {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="content-wrapper">
+        <nav>
+            <div class="logo">IRIS<span>.</span></div>
+            <a href="#" class="btn-primary-nav">Log In</a>
+        </nav>
+
+        <section class="hero">
+            <h1 class="reveal">Interface without<br><span>infrastructure.</span></h1>
+            <p class="reveal">Professional ocular tracking on the devices you already own for the next generation of
+                accessibility..</p>
+            <div class="reveal">
+                <a href="#" class="btn-primary">Launch Software</a>
+            </div>
+        </section>
+
+        <section class="vision-section">
+            <div class="vision-container">
+                <div class="vision-content reveal">
+                    <h2>Vision & <span>Purpose</span></h2>
+                    <p>Inspired by witnessing the struggle of a classmate with Rett Syndrome, Iris was developed to
+                        dismantle the cost and hardware barriers of modern assistive technology.</p>
+                    <p>By leveraging the smartphones and tablets already in use globally, we provide a compact,
+                        clinical-grade solution for those with motor impairments—turning a simple blink into a powerful
+                        voice.</p>
+                </div>
+                <div class="sdg-group reveal">
+                    <div class="sdg-item">#3 Good Health & Well-Being</div>
+                    <div class="sdg-item">#4 Quality Education</div>
+                    <div class="sdg-item">#10 Reduced Inequalities</div>
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.4); border: none;"
+                        class="sdg-item">
+                        Designed to ensure accessibility.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-header reveal">
+            <h2>How It <span>Works</span></h2>
+        </div>
+
+        <section class="steps-grid">
+            <div class="step-card reveal">
+                <div class="step-num-bg">1</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Visual Capture</h3>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Iris maps 68 facial landmarks in real-time
+                    using your existing camera. No specialized sensors or expensive hardware required.</p>
+            </div>
+            <div class="step-card reveal">
+                <div class="step-num-bg">2</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Neural Processing</h3>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Our engine distinguishes between natural
+                    involuntary movement and intentional long/short triggers to form Morse patterns.</p>
+            </div>
+            <div class="step-card reveal">
+                <div class="step-num-bg">3</div>
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">Dynamic Output</h3>
+                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Patterns are decoded into text, natural
+                    speech, or system navigation, enabling total digital independence.</p>
+            </div>
+        </section>
+
+        <div class="section-header reveal">
+            <h2>Core <span>Capabilities</span></h2>
+        </div>
+
+        <section class="caps-grid">
+            <div class="cap-card reveal">
+                <h4 style="margin-bottom: 0.8rem;">Smart Morse Engine</h4>
+                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Adaptive technology that learns your
+                    blinking
+                    cadence to maximize Words Per Minute (WPM).</p>
+            </div>
+            <div class="cap-card reveal">
+                <h4 style="margin-bottom: 0.8rem;">Multimodal Communication</h4>
+                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Integrated Text-to-Voice (TTS) and
+                    system-wide
+                    commands provide a diverse range of digital interaction.</p>
+            </div>
+            <div class="cap-card reveal">
+                <h4 style="margin-bottom: 0.8rem;">Local Edge Processing</h4>
+                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">All biometric data stays on your device. We
+                    prioritize privacy by processing everything in-browser.</p>
+            </div>
+            <div class="cap-card reveal">
+                <h4 style="margin-bottom: 0.8rem;">Global Accessibility</h4>
+                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Compatible with any camera-enabled device,
+                    significantly reducing the cost of assistive tools.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- CURSOR SPOTLIGHT EFFECT ---
+        document.querySelectorAll('.cap-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+
+        // --- BACKGROUND PARALLAX ---
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', e => {
+            mouseX = (e.clientX - window.innerWidth / 2) / 100;
+            mouseY = (e.clientY - window.innerHeight / 2) / 100;
+        });
+
+        window.addEventListener('scroll', () => {
+            const scrollPercent = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+            const bgColor = scrollPercent > 0.1
+                ? `radial-gradient(circle at 30% center, #0a1a33 0%, #050609 100%)`
+                : `radial-gradient(circle at 30% center, #0a111e 0%, #050609 100%)`;
+            document.body.style.background = bgColor;
+        });
+
+        let scene, camera, renderer, starGeo, stars;
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 100, 220);
+            camera.rotation.x = -Math.PI / 4;
+
+            starGeo = new THREE.BufferGeometry();
+            let points = [];
+            const rows = 110, cols = 110, spacing = 6;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    points.push(new THREE.Vector3((i - rows / 2) * spacing, 0, (j - cols / 2) * spacing));
+                }
+            }
+            starGeo.setFromPoints(points);
+            stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+                color: 0x00d4ff, size: 1.2, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending
+            }));
+            scene.add(stars);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Suble parallax rotation based on mouse
+            stars.rotation.y += 0.0003 + (mouseX * 0.0001);
+            stars.rotation.x = (mouseY * 0.01);
+
+            const positions = starGeo.attributes.position.array;
+            const time = Date.now() * 0.0008;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i + 1] = Math.sin(positions[i] * 0.02 + time) * 12 + Math.cos(positions[i + 2] * 0.02 + time) * 12;
+            }
+            starGeo.attributes.position.needsUpdate = true;
+            renderer.render(scene, camera);
+        }
+
+        ScrollReveal().reveal('.reveal', { delay: 150, distance: '40px', origin: 'bottom', duration: 1000, interval: 150 });
+    </script>
+</body>
+
+</html>
