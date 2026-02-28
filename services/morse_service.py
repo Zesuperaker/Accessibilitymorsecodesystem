@@ -118,8 +118,8 @@ class MorseBlinkDetector:
                     self.current_signals = []
                     self.morse_string = ""
 
-    async def send_to_ai(self, message):
-        """Send message to Mistral AI API
+    def send_to_ai(self, message):
+        """Send message to Mistral AI API (synchronous)
 
         Args:
             message: User message to send
@@ -133,38 +133,55 @@ class MorseBlinkDetector:
         """
         api_key = current_app.config.get('MISTRAL_API_KEY')
         if not api_key:
-            raise ValueError("MISTRAL_API_KEY not configured in app settings")
+            return {
+                'status': 'error',
+                'message': 'MISTRAL_API_KEY not configured'
+            }
 
         self.is_processing = True
         try:
-            self.chat_history.append({'role': 'user', 'content': message})
+            with self.lock:
+                self.chat_history.append({'role': 'user', 'content': message})
+                messages_to_send = list(self.chat_history)
 
             response = requests.post(
-                current_app.config['MISTRAL_API_URL'],
+                current_app.config.get('MISTRAL_API_URL', 'https://api.mistral.ai/v1/chat/completions'),
                 headers={
                     'Authorization': f'Bearer {api_key}',
                     'Content-Type': 'application/json'
                 },
                 json={
                     'model': 'mistral-large-latest',
-                    'messages': self.chat_history
+                    'messages': messages_to_send
                 },
                 timeout=10
             )
             response.raise_for_status()
 
             ai_msg = response.json()['choices'][0]['message']['content']
-            self.chat_history.append({'role': 'assistant', 'content': ai_msg})
-            self.current_word = ""  # Clear word for next input
+
+            with self.lock:
+                self.chat_history.append({'role': 'assistant', 'content': ai_msg})
+                self.current_word = ""  # Clear word for next input
 
             return {
                 'status': 'success',
                 'response': ai_msg
             }
+        except requests.exceptions.Timeout:
+            return {
+                'status': 'error',
+                'message': 'API request timed out'
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                'status': 'error',
+                'message': f'API error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'status': 'error',
-                'message': str(e)
+                'message': f'Unexpected error: {str(e)}'
             }
         finally:
             self.is_processing = False
