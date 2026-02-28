@@ -6,6 +6,6 @@ argon2-cffi==25.1.0
 opencv-python==4.8.1.78
 cvzone==1.6.1
 requests==2.32.5
-numpy<2
+numpy==1.26.4
 python-dotenv==1.2.1
 mediapipe==0.10.21

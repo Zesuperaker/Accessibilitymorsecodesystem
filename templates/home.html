@@ -74,9 +74,34 @@
             font-size: 1.5rem;
             font-weight: 800;
             letter-spacing: -1.5px;
+            text-decoration: none;
+            color: var(--text);
         }
 
         .logo span {
+            color: var(--primary);
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            padding: 0.5rem 1rem;
+        }
+
+        .nav-links a:hover {
             color: var(--primary);
         }
 
@@ -135,6 +160,10 @@
             margin-bottom: 2rem;
         }
 
+        .vision-content h2 span {
+            color: var(--primary);
+        }
+
         .vision-content p {
             font-size: 1.2rem;
             line-height: 1.8;
@@ -167,6 +196,15 @@
             padding: 8rem 10% 4rem 10%;
             max-width: 1400px;
             margin: 0 auto;
+        }
+
+        .section-header h2 {
+            font-size: 3.5rem;
+            font-weight: 800;
+        }
+
+        .section-header h2 span {
+            color: var(--primary);
         }
 
         .steps-grid {
@@ -209,6 +247,16 @@
         .step-card:hover .step-num-bg {
             color: rgba(0, 212, 255, 0.2);
             transform: scale(1.1) rotate(-5deg);
+        }
+
+        .step-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .step-card p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
         }
 
         /* --- CAPABILITIES GRID --- */
@@ -255,6 +303,16 @@
             background: rgba(0, 212, 255, 0.04);
         }
 
+        .cap-card h4 {
+            margin-bottom: 0.8rem;
+            color: var(--text);
+        }
+
+        .cap-card p {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
         .btn-primary {
             background: var(--primary);
             color: #000;
@@ -265,6 +323,8 @@
             box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
             display: inline-block;
             transition: 0.3s;
+            border: none;
+            cursor: pointer;
         }
 
         .btn-primary:hover {
@@ -280,12 +340,49 @@
             text-decoration: none;
             font-weight: 700;
             font-size: 0.85rem;
+            transition: 0.3s;
+        }
+
+        .btn-primary-nav:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .reveal {
+            opacity: 1;
         }
 
         @media (max-width: 1000px) {
             .vision-container {
                 grid-template-columns: 1fr;
                 gap: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                width: 95%;
+                padding: 0.7rem 1.5rem;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .caps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vision-container {
+                padding: 0;
             }
         }
     </style>
@@ -297,16 +394,29 @@
 
     <div class="content-wrapper">
         <nav>
-            <div class="logo">IRIS<span>.</span></div>
-            <a href="#" class="btn-primary-nav">Log In</a>
+            <a href="{{ url_for('main.index') }}" class="logo">IRIS<span>.</span></a>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="{{ url_for('morse.morse_interface') }}">Morse App</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('security.logout') }}">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('security.login') }}">Sign In</a>
+                    {% endif %}
+                </div>
+                {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('security.login') }}" class="btn-primary-nav">Log In</a>
+                {% else %}
+                    <span style="color: var(--primary); font-size: 0.85rem;">{{ current_user.email }}</span>
+                {% endif %}
+            </div>
         </nav>
 
         <section class="hero">
             <h1 class="reveal">Interface without<br><span>infrastructure.</span></h1>
-            <p class="reveal">Professional ocular tracking on the devices you already own for the next generation of
-                accessibility..</p>
+            <p class="reveal">Professional ocular tracking on the devices you already own for the next generation of accessibility.</p>
             <div class="reveal">
-                <a href="#" class="btn-primary">Launch Software</a>
+                <a href="{{ url_for('morse.morse_interface') }}" class="btn-primary">Launch Morse App</a>
             </div>
         </section>
 
@@ -314,20 +424,14 @@
             <div class="vision-container">
                 <div class="vision-content reveal">
                     <h2>Vision & <span>Purpose</span></h2>
-                    <p>Inspired by witnessing the struggle of a classmate with Rett Syndrome, Iris was developed to
-                        dismantle the cost and hardware barriers of modern assistive technology.</p>
-                    <p>By leveraging the smartphones and tablets already in use globally, we provide a compact,
-                        clinical-grade solution for those with motor impairments—turning a simple blink into a powerful
-                        voice.</p>
+                    <p>Inspired by witnessing the struggle of a classmate with Rett Syndrome, Iris was developed to dismantle the cost and hardware barriers of modern assistive technology.</p>
+                    <p>By leveraging the smartphones and tablets already in use globally, we provide a compact, clinical-grade solution for those with motor impairments—turning a simple blink into a powerful voice.</p>
                 </div>
                 <div class="sdg-group reveal">
                     <div class="sdg-item">#3 Good Health & Well-Being</div>
                     <div class="sdg-item">#4 Quality Education</div>
                     <div class="sdg-item">#10 Reduced Inequalities</div>
-                    <div style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.4); border: none;"
-                        class="sdg-item">
-                        Designed to ensure accessibility.
-                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.4); border: none;" class="sdg-item">Designed to ensure accessibility.</div>
                 </div>
             </div>
         </section>
@@ -339,21 +443,18 @@
         <section class="steps-grid">
             <div class="step-card reveal">
                 <div class="step-num-bg">1</div>
-                <h3 style="color: var(--primary); margin-bottom: 1rem;">Visual Capture</h3>
-                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Iris maps 68 facial landmarks in real-time
-                    using your existing camera. No specialized sensors or expensive hardware required.</p>
+                <h3>Visual Capture</h3>
+                <p>Iris maps 68 facial landmarks in real-time using your existing camera. No specialized sensors or expensive hardware required.</p>
             </div>
             <div class="step-card reveal">
                 <div class="step-num-bg">2</div>
-                <h3 style="color: var(--primary); margin-bottom: 1rem;">Neural Processing</h3>
-                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Our engine distinguishes between natural
-                    involuntary movement and intentional long/short triggers to form Morse patterns.</p>
+                <h3>Neural Processing</h3>
+                <p>Our engine distinguishes between natural involuntary movement and intentional long/short triggers to form Morse patterns.</p>
             </div>
             <div class="step-card reveal">
                 <div class="step-num-bg">3</div>
-                <h3 style="color: var(--primary); margin-bottom: 1rem;">Dynamic Output</h3>
-                <p style="color: rgba(255,255,255,0.7); line-height: 1.6;">Patterns are decoded into text, natural
-                    speech, or system navigation, enabling total digital independence.</p>
+                <h3>Dynamic Output</h3>
+                <p>Patterns are decoded into text, natural speech, or system navigation, enabling total digital independence.</p>
             </div>
         </section>
 
@@ -363,26 +464,20 @@
 
         <section class="caps-grid">
             <div class="cap-card reveal">
-                <h4 style="margin-bottom: 0.8rem;">Smart Morse Engine</h4>
-                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Adaptive technology that learns your
-                    blinking
-                    cadence to maximize Words Per Minute (WPM).</p>
+                <h4>Smart Morse Engine</h4>
+                <p>Adaptive technology that learns your blinking cadence to maximize Words Per Minute (WPM).</p>
             </div>
             <div class="cap-card reveal">
-                <h4 style="margin-bottom: 0.8rem;">Multimodal Communication</h4>
-                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Integrated Text-to-Voice (TTS) and
-                    system-wide
-                    commands provide a diverse range of digital interaction.</p>
+                <h4>Multimodal Communication</h4>
+                <p>Integrated Text-to-Voice (TTS) and system-wide commands provide a diverse range of digital interaction.</p>
             </div>
             <div class="cap-card reveal">
-                <h4 style="margin-bottom: 0.8rem;">Local Edge Processing</h4>
-                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">All biometric data stays on your device. We
-                    prioritize privacy by processing everything in-browser.</p>
+                <h4>Local Edge Processing</h4>
+                <p>All biometric data stays on your device. We prioritize privacy by processing everything in-browser.</p>
             </div>
             <div class="cap-card reveal">
-                <h4 style="margin-bottom: 0.8rem;">Global Accessibility</h4>
-                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.5);">Compatible with any camera-enabled device,
-                    significantly reducing the cost of assistive tools.</p>
+                <h4>Global Accessibility</h4>
+                <p>Compatible with any camera-enabled device, significantly reducing the cost of assistive tools.</p>
             </div>
         </section>
     </div>
@@ -442,12 +537,16 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
         }
 
         function animate() {
             requestAnimationFrame(animate);
-
-            // Suble parallax rotation based on mouse
             stars.rotation.y += 0.0003 + (mouseX * 0.0001);
             stars.rotation.x = (mouseY * 0.01);
 
@@ -460,7 +559,9 @@
             renderer.render(scene, camera);
         }
 
-        ScrollReveal().reveal('.reveal', { delay: 150, distance: '40px', origin: 'bottom', duration: 1000, interval: 150 });
+        if (typeof ScrollReveal !== 'undefined') {
+            ScrollReveal().reveal('.reveal', { delay: 150, distance: '40px', origin: 'bottom', duration: 1000, interval: 150 });
+        }
     </script>
 </body>
 
