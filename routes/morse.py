@@ -1,11 +1,12 @@
 """Morse code detection routes"""
+import io
 import cv2
 import logging
-from flask import Blueprint, render_template, Response, jsonify
+import numpy as np
+from flask import Blueprint, render_template, jsonify, request
 from cvzone.FaceMeshModule import FaceMeshDetector
 
 from services.morse_service import MorseBlinkDetector
-from utils import CameraManager
 
 morse_bp = Blueprint(
     'morse',
@@ -14,27 +15,16 @@ morse_bp = Blueprint(
     template_folder='../templates/morse'
 )
 
-# Initialize state and camera manager
+# Initialize state
 morse_state = MorseBlinkDetector()
-camera_manager = CameraManager()
 
-# Lazy-loaded detector (initialized on first use, not at import)
+# Lazy-loaded detector
 _detector = None
 logger = logging.getLogger(__name__)
 
 
 def get_detector():
-    """Get or initialize the face mesh detector (lazy loading)
-
-    This is called only when video processing starts, not at module import.
-    Prevents initialization errors if mediapipe isn't ready.
-
-    Returns:
-        FaceMeshDetector: Face detection instance
-
-    Raises:
-        RuntimeError: If detector initialization fails
-    """
+    """Get or initialize the face mesh detector"""
     global _detector
     if _detector is None:
         try:
@@ -55,14 +45,10 @@ def morse_interface():
 
 @morse_bp.route('/start', methods=['POST'])
 def start_detection():
-    """Start morse detection
-
-    Returns:
-        JSON: Status response
-    """
+    """Start morse detection"""
     try:
         morse_state.start_flag = True
-        logger.info("Morse detection started")
+        logger.info("✅ Morse detection started")
         return jsonify({'status': 'active', 'message': 'Detection started'}), 200
     except Exception as e:
         logger.error(f"Error starting detection: {e}")
@@ -71,11 +57,7 @@ def start_detection():
 
 @morse_bp.route('/toggle_pause', methods=['POST'])
 def toggle_pause():
-    """Toggle pause state
-
-    Returns:
-        JSON: Current pause state
-    """
+    """Toggle pause state"""
     try:
         morse_state.is_paused = not morse_state.is_paused
         state = 'paused' if morse_state.is_paused else 'resumed'
@@ -91,14 +73,10 @@ def toggle_pause():
 
 @morse_bp.route('/reset', methods=['POST'])
 def reset():
-    """Reset morse decoder and conversation
-
-    Returns:
-        JSON: Status response
-    """
+    """Reset morse decoder and conversation"""
     try:
         morse_state.reset()
-        logger.info("Morse decoder reset")
+        logger.info("🔄 Morse decoder reset")
         return jsonify({'status': 'cleared', 'message': 'Decoder reset'}), 200
     except Exception as e:
         logger.error(f"Error resetting decoder: {e}")
@@ -107,11 +85,7 @@ def reset():
 
 @morse_bp.route('/status')
 def get_status():
-    """Get current detection status
-
-    Returns:
-        JSON: Current morse state and conversation history
-    """
+    """Get current detection status"""
     try:
         status = morse_state.get_status()
         return jsonify(status), 200
@@ -122,14 +96,7 @@ def get_status():
 
 @morse_bp.route('/check_inactivity')
 def check_inactivity():
-    """Check for inactivity and auto-reset if threshold exceeded
-
-    Returns:
-        JSON: {
-            'auto_reset': bool (True if reset occurred),
-            'word_before_reset': str (word that was auto-reset)
-        }
-    """
+    """Check for inactivity and auto-reset if threshold exceeded"""
     try:
         result = morse_state.check_and_handle_inactivity(inactivity_threshold=5.0)
         return jsonify(result), 200
@@ -140,11 +107,7 @@ def check_inactivity():
 
 @morse_bp.route('/send', methods=['POST'])
 def send_to_ai():
-    """Send detected message to AI
-
-    Returns:
-        JSON: AI response or error
-    """
+    """Send detected message to AI"""
     if not morse_state.current_word:
         return jsonify({
             'status': 'error',
@@ -159,9 +122,8 @@ def send_to_ai():
 
     try:
         word_to_send = morse_state.current_word
-        logger.info(f"Sending to AI: {word_to_send}")
+        logger.info(f"📤 Sending to AI: {word_to_send}")
 
-        # Call synchronous send_to_ai method
         result = morse_state.send_to_ai(word_to_send)
 
         status_code = 200 if result['status'] == 'success' else 500
@@ -174,129 +136,94 @@ def send_to_ai():
         }), 500
 
 
-def _process_frame():
-    """Process video frames for morse detection
+@morse_bp.route('/process_frame', methods=['POST'])
+def process_frame():
+    """Process a frame from the client browser
 
-    Yields:
-        bytes: JPEG encoded frame with boundaries for streaming
+    Receives JPEG frame from getUserMedia video stream,
+    performs face detection and eye tracking for morse code detection.
+
+    Returns: JSON status
     """
-    detector = None
-    camera = None
-
     try:
-        # Initialize detector and camera
-        detector = get_detector()
-        camera = camera_manager.get_camera()
-        logger.info("Starting frame processing")
-    except RuntimeError as e:
-        logger.error(f"Initialization failed: {e}")
-        # Return error frame
-        error_img = None
+        # Get frame from request
+        if 'frame' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No frame in request'}), 400
+
+        frame_file = request.files['frame']
+        frame_data = np.frombuffer(frame_file.read(), np.uint8)
+        img = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return jsonify({'status': 'error', 'message': 'Invalid frame data'}), 400
+
+        # Only process if detection is active and not paused
+        if not morse_state.start_flag or morse_state.is_paused:
+            return jsonify({'status': 'skipped', 'reason': 'detection_inactive'}), 200
+
+        # Get detector (lazy load)
         try:
-            import os
-            if os.path.exists('static/error.png'):
-                error_img = cv2.imread('static/error.png')
-        except:
-            pass
+            detector = get_detector()
+        except RuntimeError as e:
+            logger.error(f"Detector error: {e}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500
 
-        if error_img is None:
-            # Create a blank image with error text
-            error_img = cv2.zeros((720, 1280, 3), cv2.CV_8UC3)
-            cv2.putText(error_img, "Camera/Detector Initialization Failed", (100, 360),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(error_img, str(e), (100, 400),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 1)
-        _, buffer = cv2.imencode('.jpg', error_img)
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        return
+        # Detect faces
+        try:
+            img, faces = detector.findFaceMesh(img, draw=False)
+        except Exception as e:
+            logger.warning(f"Face detection error: {e}")
+            faces = []
 
-    try:
-        frame_count = 0
-        while True:
+        # Process detected faces
+        if faces:
             try:
-                success, img = camera.read()
-                if not success:
-                    logger.warning("Failed to read frame from camera")
-                    break
+                face = faces[0]
 
-                frame_count += 1
+                # Eye landmarks
+                # Left Eye: 159 (Top), 23 (Bottom), 130 (Left), 243 (Right)
+                # Right Eye: 386 (Top), 374 (Bottom), 398 (Left), 359 (Right)
+                v_dist_l, _ = detector.findDistance(face[159], face[23])
+                h_dist_l, _ = detector.findDistance(face[130], face[243])
+                v_dist_r, _ = detector.findDistance(face[386], face[374])
+                h_dist_r, _ = detector.findDistance(face[398], face[359])
 
-                # Find face mesh
-                try:
-                    img, faces = detector.findFaceMesh(img, draw=False)
-                except Exception as e:
-                    logger.warning(f"Face detection error on frame {frame_count}: {e}")
-                    faces = []
+                # Calculate Eye Aspect Ratio
+                current_ratio = ((v_dist_l / h_dist_l) + (v_dist_r / h_dist_r)) / 2 * 100
 
-                # Process faces if detection is active
-                if faces and morse_state.start_flag and not morse_state.is_paused:
-                    try:
-                        face = faces[0]
+                # Smooth the ratio
+                morse_state.ratio_history.append(current_ratio)
+                if len(morse_state.ratio_history) > 3:
+                    morse_state.ratio_history.pop(0)
+                smooth_ratio = sum(morse_state.ratio_history) / len(morse_state.ratio_history)
 
-                        # Extract landmarks for EAR (Eye Aspect Ratio) calculation
-                        # Left Eye: 159 (Top), 23 (Bottom), 130 (Left), 243 (Right)
-                        # Right Eye: 386 (Top), 374 (Bottom), 398 (Left), 359 (Right)
-                        v_dist_l, _ = detector.findDistance(face[159], face[23])
-                        h_dist_l, _ = detector.findDistance(face[130], face[243])
-                        v_dist_r, _ = detector.findDistance(face[386], face[374])
-                        h_dist_r, _ = detector.findDistance(face[398], face[359])
+                # Maintain baseline
+                morse_state.avg_ratio_history.append(smooth_ratio)
+                if len(morse_state.avg_ratio_history) > 150:
+                    morse_state.avg_ratio_history.pop(0)
+                baseline = sum(morse_state.avg_ratio_history) / len(morse_state.avg_ratio_history)
 
-                        # Calculate averaged Eye Aspect Ratio (EAR)
-                        current_ratio = ((v_dist_l / h_dist_l) + (v_dist_r / h_dist_r)) / 2 * 100
+                # Process the eye aspect ratio
+                morse_state.process_eye_aspect_ratio(smooth_ratio, baseline)
 
-                        # Smoothing EAR values
-                        morse_state.ratio_history.append(current_ratio)
-                        if len(morse_state.ratio_history) > 3:
-                            morse_state.ratio_history.pop(0)
-                        smooth_ratio = sum(morse_state.ratio_history) / len(morse_state.ratio_history)
-
-                        # Maintain a longer average for baseline comparison
-                        morse_state.avg_ratio_history.append(smooth_ratio)
-                        if len(morse_state.avg_ratio_history) > 150:
-                            morse_state.avg_ratio_history.pop(0)
-                        baseline = sum(morse_state.avg_ratio_history) / len(morse_state.avg_ratio_history)
-
-                        # Process eye aspect ratio for blink detection
-                        morse_state.process_eye_aspect_ratio(smooth_ratio, baseline)
-                    except Exception as e:
-                        logger.warning(f"Error processing face data: {e}")
-
-                # Visual Overlays
-                if morse_state.is_paused:
-                    cv2.putText(img, "PAUSED", (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                               1, (0, 0, 255), 2)
-
-                # Encode frame
-                _, buffer = cv2.imencode('.jpg', img)
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                return jsonify({
+                    'status': 'processed',
+                    'faces_detected': len(faces),
+                    'current_word': morse_state.current_word,
+                    'current_morse': morse_state.morse_string
+                }), 200
 
             except Exception as e:
-                logger.error(f"Error processing frame: {e}")
-                # Try to continue instead of breaking
-                continue
+                logger.warning(f"Face processing error: {e}")
+                return jsonify({'status': 'error', 'message': str(e)}), 500
+
+        # No face detected
+        return jsonify({
+            'status': 'no_faces',
+            'current_word': morse_state.current_word,
+            'current_morse': morse_state.morse_string
+        }), 200
 
     except Exception as e:
-        logger.error(f"Fatal frame processing error: {e}")
-    finally:
-        if camera is not None:
-            camera_manager.release_camera()
-            logger.info("Camera released after frame processing")
-
-
-@morse_bp.route('/video_feed')
-def video_feed():
-    """Stream video frames for display
-
-    Returns:
-        Response: MJPEG stream
-    """
-    try:
-        return Response(
-            _process_frame(),
-            mimetype='multipart/x-mixed-replace; boundary=frame'
-        )
-    except Exception as e:
-        logger.error(f"Error in video feed: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"❌ Frame processing error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

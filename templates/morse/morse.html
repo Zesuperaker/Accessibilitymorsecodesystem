@@ -63,7 +63,7 @@
         display: grid;
         grid-template-columns: 0.5fr 0.5fr;
         flex: 1;
-        min-height: 0; /* important for flex/grid children */
+        min-height: 0;
     }
 
     /* Camera Section */
@@ -72,13 +72,71 @@
         position: relative;
         overflow: hidden;
         border-right: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .camera-section img {
+    #videoElement {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        opacity: 0.9;
+        transform: scaleX(-1);
+        background: #000;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        font-size: 12px;
+        z-index: 10;
+    }
+
+    .camera-error {
+        color: #ef4444;
+        font-size: 1.1rem;
+        text-align: center;
+        padding: 2rem;
+        background: rgba(239, 68, 68, 0.05);
+        border-radius: 8px;
+        max-width: 400px;
+    }
+
+    .camera-error h3 {
+        margin-bottom: 1rem;
+        color: #fca5a5;
+    }
+
+    .camera-error p {
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .camera-error .button-group {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 10px;
+        flex-direction: column;
+    }
+
+    .camera-error button {
+        padding: 10px 20px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .camera-error button:hover {
+        background: #059669;
     }
 
     /* Legend / Sidebar Section */
@@ -87,8 +145,8 @@
         padding: 24px;
         display: flex;
         flex-direction: column;
-        min-height: 0; /* fix clipping in flex/grid */
-        overflow: visible; /* allow Morse code to always expand */
+        min-height: 0;
+        overflow-y: auto;
     }
 
     .legend-title {
@@ -123,11 +181,12 @@
     .btn-start { background: #10b981; color: white; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
     .btn-pause { background: #f59e0b; color: white; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); }
     .btn-reset { background: #ef4444; color: white; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3); }
-    
+
     .btn-morse:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
     .btn-morse:active { transform: translateY(0); }
+    .btn-morse:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* The Nicer Morse Grid */
+    /* Section Label */
     .section-label {
         font-size: 12px;
         font-weight: 700;
@@ -138,10 +197,10 @@
     }
 
     .morse-header {
-        display: flex;       
-        justify-content: space-between; 
-        align-items: center;     
-        margin-bottom: 10px;  
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
         gap: 10px;
     }
 
@@ -177,7 +236,7 @@
     .morse-code {
         font-size: 12px;
         font-family: 'JetBrains Mono', monospace;
-        color: #00d4ff; /* Neon cyan code */
+        color: #00d4ff;
         letter-spacing: 1px;
     }
 
@@ -200,6 +259,29 @@
         flex: 1 1 auto;
     }
 
+    /* Status indicator */
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+        animation: pulse 2s infinite;
+    }
+
+    .status-indicator.active {
+        background: #10b981;
+    }
+
+    .status-indicator.inactive {
+        background: #6b7280;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
     /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -210,10 +292,10 @@
     @media (max-width: 1100px) {
         .page-wrapper {
             grid-template-columns: 1fr;
-            grid-template-rows: auto auto; /* allow natural growth */
+            grid-template-rows: auto auto;
         }
-        .legend-section { 
-            overflow: visible;
+        .legend-section {
+            overflow-y: auto;
         }
     }
 </style>
@@ -235,14 +317,19 @@
 <div class="page-wrapper">
 
     <div class="camera-section">
-        <img id="videoStream" src="{{ url_for('morse.video_feed') }}" alt="Video stream">
-
-        <!-- <div class="camera-overlay">
-            <div class="overlay-label">Current Word:</div>
-            <div class="overlay-value" id="overlayWord">—</div>
-            <div class="overlay-label">Morse Signal:</div>
-            <div class="overlay-value" id="overlayMorse">—</div>
-        </div> -->
+        <video id="videoElement" playsinline muted></video>
+        <div id="cameraError" class="camera-error" style="display: none;">
+            <h3>📹 Camera Access</h3>
+            <p id="errorMessage">Requesting camera access...</p>
+            <div class="button-group">
+                <button onclick="retryCamera()">Retry Camera</button>
+                <button onclick="checkPermissions()" style="background: #3b82f6;">Check Permissions</button>
+            </div>
+        </div>
+        <div class="camera-overlay" id="cameraOverlay" style="display: none;">
+            <span class="status-indicator active"></span>
+            <span id="cameraStatus">Initializing...</span>
+        </div>
     </div>
 
     <div class="legend-section">
@@ -292,14 +379,23 @@
 
     // Initialize Text-to-Speech
     const tts = new TextToSpeech({
-        rate: 1.0,        // Normal speed
-        pitch: 1.0,       // Normal pitch
-        volume: 1.0,      // Full volume
+        rate: 1.0,
+        pitch: 1.0,
+        volume: 1.0,
         language: 'en-US',
         onStart: () => console.log('🔊 Speaking...'),
         onEnd: () => console.log('✓ Speech ended'),
         onError: (error) => console.error('TTS Error:', error)
     });
+
+    // Camera and stream management
+    let videoElement = document.getElementById('videoElement');
+    let cameraStream = null;
+    let frameProcessingInterval = null;
+    let statusInterval = null;
+    let inactivityInterval = null;
+    let isDetectionActive = false;
+    let cameraReady = false;
 
     // Check if TTS is supported
     if (!TextToSpeech.isSupported()) {
@@ -309,8 +405,8 @@
     const lettersGrid = document.getElementById("lettersGrid");
     const numbersGrid = document.getElementById("numbersGrid");
     const autoResetBanner = document.getElementById("autoResetBanner");
-    let statusInterval = null;
-    let inactivityInterval = null;
+    const cameraError = document.getElementById("cameraError");
+    const cameraOverlay = document.getElementById("cameraOverlay");
 
     // Build morse reference
     function buildMorseReference() {
@@ -337,24 +433,171 @@
 
     buildMorseReference();
 
+    // Initialize camera with detailed error handling
+    async function initializeCamera() {
+        try {
+            console.log('📷 Requesting camera access...');
+            showStatus('camera', 'Requesting camera...');
+
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                },
+                audio: false
+            });
+
+            console.log('✅ Camera stream obtained:', cameraStream);
+            console.log('📹 Video tracks:', cameraStream.getVideoTracks());
+
+            videoElement.srcObject = cameraStream;
+
+            // Wait for video to load
+            return new Promise((resolve) => {
+                videoElement.onloadedmetadata = () => {
+                    console.log('✅ Video metadata loaded, playing...');
+                    videoElement.play().then(() => {
+                        console.log('✅ Video playing successfully');
+                        console.log('Video resolution:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                        cameraError.style.display = 'none';
+                        cameraOverlay.style.display = 'block';
+                        showStatus('camera', 'Camera Ready ✓');
+                        cameraReady = true;
+                        resolve(true);
+                    }).catch(err => {
+                        console.error('❌ Failed to play video:', err);
+                        showCameraError(`Failed to play video: ${err.message}`);
+                        resolve(false);
+                    });
+                };
+
+                // Timeout if metadata doesn't load
+                setTimeout(() => {
+                    if (!cameraReady) {
+                        console.error('❌ Timeout waiting for video metadata');
+                        showCameraError('Camera timeout. Check permissions and try again.');
+                        resolve(false);
+                    }
+                }, 5000);
+            });
+
+        } catch (error) {
+            console.error('❌ Camera error:', error.name, error.message);
+
+            let errorMsg = '';
+            if (error.name === 'NotAllowedError') {
+                errorMsg = 'Camera permission denied. Please allow camera access in browser settings.';
+            } else if (error.name === 'NotFoundError') {
+                errorMsg = 'No camera found. Ensure a camera is connected and not in use.';
+            } else if (error.name === 'NotReadableError') {
+                errorMsg = 'Camera is in use by another application.';
+            } else {
+                errorMsg = `Camera error: ${error.message}`;
+            }
+
+            showCameraError(errorMsg);
+            return false;
+        }
+    }
+
+    function showStatus(type, message) {
+        if (type === 'camera') {
+            document.getElementById('cameraStatus').textContent = message;
+        }
+    }
+
+    function showCameraError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        cameraError.style.display = 'flex';
+        cameraOverlay.style.display = 'none';
+        cameraReady = false;
+    }
+
+    async function retryCamera() {
+        console.log('🔄 Retrying camera initialization...');
+        cameraReady = false;
+        await initializeCamera();
+    }
+
+    function checkPermissions() {
+        alert('Camera permissions can be changed in your browser settings. For most browsers:\n\n' +
+              'Chrome/Edge: Settings → Privacy and security → Camera\n' +
+              'Firefox: Preferences → Privacy & Security → Permissions → Camera\n' +
+              'Safari: System Preferences → Security & Privacy → Camera\n\n' +
+              'Make sure this site has camera permission enabled.');
+    }
+
+    // Capture frame from video and send to server
+    function captureAndSendFrame() {
+        if (!videoElement.videoWidth || !videoElement.videoHeight) {
+            console.warn('⚠️ Video not ready, skipping frame capture');
+            return;
+        }
+
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            // Flip horizontally (mirror the video)
+            ctx.scale(-1, 1);
+            ctx.drawImage(videoElement, -canvas.width, 0, canvas.width, canvas.height);
+
+            // Convert to blob and send to server
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('frame', blob, 'frame.jpg');
+
+                fetch('{{ url_for("morse.process_frame") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .catch(error => console.error('Frame processing error:', error));
+            }, 'image/jpeg', 0.85);
+        } catch (error) {
+            console.error('Frame capture error:', error);
+        }
+    }
+
     // API Functions
     async function startDetection() {
+        if (!cameraReady) {
+            console.log('📷 Initializing camera...');
+            const ready = await initializeCamera();
+            if (!ready) {
+                console.error('❌ Camera initialization failed');
+                return;
+            }
+        }
+
         try {
             const response = await fetch('{{ url_for("morse.start_detection") }}', { method: 'POST' });
             const data = await response.json();
 
             if (response.ok && data.status === 'active') {
+                isDetectionActive = true;
+                console.log('✅ Detection started');
                 document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = false;
                 document.getElementById('resetBtn').disabled = false;
-                autoResetBanner.classList.add('show');
+                autoResetBanner.style.display = 'block';
+
                 startStatusUpdates();
                 startInactivityCheck();
+                startFrameCapture();
             }
         } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to start detection');
+            console.error('Error starting detection:', error);
+            alert('Failed to start detection: ' + error.message);
         }
+    }
+
+    function startFrameCapture() {
+        // Send frames to server every 100ms for processing
+        frameProcessingInterval = setInterval(captureAndSendFrame, 100);
+        console.log('🎬 Frame capture started (10 FPS)');
     }
 
     async function togglePause() {
@@ -374,57 +617,22 @@
         try {
             const response = await fetch('{{ url_for("morse.reset") }}', { method: 'POST' });
             if (response.ok) {
-                // Stop any ongoing speech
                 tts.stop();
 
                 document.getElementById('decodedWord').textContent = '—';
                 document.getElementById('morsePattern').textContent = '—';
-                document.getElementById('overlayWord').textContent = '—';
-                document.getElementById('overlayMorse').textContent = '—';
 
-                // Re-enable start button and disable pause/reset buttons
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
                 document.getElementById('resetBtn').disabled = true;
-                document.getElementById('sendBtn').disabled = true;
-                autoResetBanner.classList.remove('show');
-
-                // Update pause button text
                 document.getElementById('pauseBtn').textContent = 'Pause';
+                autoResetBanner.style.display = 'none';
 
-                // Clear intervals
+                isDetectionActive = false;
+
+                if (frameProcessingInterval) clearInterval(frameProcessingInterval);
                 if (statusInterval) clearInterval(statusInterval);
                 if (inactivityInterval) clearInterval(inactivityInterval);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
-
-    async function sendToAI() {
-        const word = document.getElementById('decodedWord').textContent;
-        if (!word || word === '—') return;
-
-        try {
-            // Speak the decoded word immediately
-            tts.speak(word);
-
-            const response = await fetch('{{ url_for("morse.send_to_ai") }}', { method: 'POST' });
-            const data = await response.json();
-
-            if (response.ok && data.status === 'success') {
-                addChatMessage(word, 'user');
-                addChatMessage(data.response, 'ai');
-
-                // Speak the AI response after a brief delay
-                setTimeout(() => {
-                    tts.speak(data.response);
-                }, 800);
-
-                document.getElementById('decodedWord').textContent = '—';
-                document.getElementById('morsePattern').textContent = '—';
-                document.getElementById('overlayWord').textContent = '—';
-                document.getElementById('overlayMorse').textContent = '—';
             }
         } catch (error) {
             console.error('Error:', error);
@@ -439,9 +647,6 @@
 
                 document.getElementById('decodedWord').textContent = data.word || '—';
                 document.getElementById('morsePattern').textContent = data.morse || '—';
-                document.getElementById('overlayWord').textContent = data.word || '—';
-                document.getElementById('overlayMorse').textContent = data.morse || '—';
-                document.getElementById('sendBtn').disabled = !data.word;
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -456,39 +661,33 @@
 
                 if (data.auto_reset && data.word_before_reset) {
                     console.log('🔄 Auto-reset triggered! Word:', data.word_before_reset);
-
-                    // Speak the word that was auto-reset
                     tts.speak(data.word_before_reset);
 
-                    // Update UI to show reset occurred
                     document.getElementById('decodedWord').textContent = '—';
                     document.getElementById('morsePattern').textContent = '—';
-                    document.getElementById('overlayWord').textContent = '—';
-                    document.getElementById('overlayMorse').textContent = '—';
-                    document.getElementById('sendBtn').disabled = true;
                 }
             } catch (error) {
                 console.error('Error checking inactivity:', error);
             }
-        }, 500); // Check every 500ms for responsive inactivity detection
+        }, 500);
     }
 
-    function addChatMessage(content, role) {
-        const chatHistory = document.getElementById('chatHistory');
-        const empty = chatHistory.querySelector('.empty-chat');
-        if (empty) empty.remove();
-
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message chat-${role}`;
-        messageDiv.textContent = content;
-        chatHistory.appendChild(messageDiv);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-    }
-
+    // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
         tts.stop();
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => {
+                track.stop();
+                console.log('📷 Camera track stopped');
+            });
+        }
+        if (frameProcessingInterval) clearInterval(frameProcessingInterval);
         if (statusInterval) clearInterval(statusInterval);
         if (inactivityInterval) clearInterval(inactivityInterval);
     });
+
+    // Log on page load
+    console.log('🚀 Morse Code Detector loaded');
+    console.log('📸 Camera support:', !!navigator.mediaDevices?.getUserMedia);
 </script>
 {% endblock %}
