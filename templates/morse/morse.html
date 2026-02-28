@@ -459,7 +459,7 @@
             const data = await response.json();
             if (response.ok) {
                 const btn = document.getElementById('pauseBtn');
-                btn.textContent = data.paused ? 'Resume' : 'Pause';
+                btn.textContent = data.status === 'paused' ? 'Resume' : 'Pause';
             }
         } catch (error) {
             console.error('Error:', error);
@@ -474,6 +474,18 @@
                 document.getElementById('morsePattern').textContent = '—';
                 document.getElementById('overlayWord').textContent = '—';
                 document.getElementById('overlayMorse').textContent = '—';
+
+                // FIX: Re-enable start button and disable pause/reset buttons
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('resetBtn').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+
+                // Update pause button text
+                document.getElementById('pauseBtn').textContent = 'Pause';
+
+                // Clear status update interval
+                if (statusInterval) clearInterval(statusInterval);
             }
         } catch (error) {
             console.error('Error:', error);
