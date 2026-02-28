@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account{% endblock %}
+{% block header_title %}Create Your Account{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 450px;
+        margin: 2rem auto;
+    }
+
+    .auth-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        border: 1px solid #f0f0f0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #27ae60;
+        box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+    }
+
+    .password-note {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 0.3rem;
+    }
+
+    .btn-signup {
+        width: 100%;
+        padding: 0.85rem;
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-signup:hover {
+        background-color: #229954;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .auth-footer p {
+        margin: 0;
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .auth-footer a {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    .alert-error {
+        background-color: #fadbd8;
+        border: 1px solid #f5b7b1;
+        color: #922b21;
+    }
+
+    .alert-success {
+        background-color: #d5f4e6;
+        border: 1px solid #a9dfbf;
+        color: #145a32;
+    }
+
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .error-list li {
+        color: #922b21;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('security.register') }}" novalidate>
+            {{ register_user_form.hidden_tag() }}
+
+            <!-- Email Field -->
+            <div class="form-group">
+                {{ register_user_form.email.label }}
+                {{ register_user_form.email(class="form-control", placeholder="you@example.com") }}
+                {% if register_user_form.email.errors %}
+                    <ul class="error-list">
+                    {% for error in register_user_form.email.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-group">
+                {{ register_user_form.password.label }}
+                {{ register_user_form.password(class="form-control", placeholder="Minimum 8 characters") }}
+                <div class="password-note">Must be at least 8 characters</div>
+                {% if register_user_form.password.errors %}
+                    <ul class="error-list">
+                    {% for error in register_user_form.password.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Password Confirmation Field -->
+            <div class="form-group">
+                {{ register_user_form.password_confirm.label }}
+                {{ register_user_form.password_confirm(class="form-control", placeholder="Re-enter your password") }}
+                {% if register_user_form.password_confirm.errors %}
+                    <ul class="error-list">
+                    {% for error in register_user_form.password_confirm.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            {{ register_user_form.submit(class="btn-signup", value="Create Account") }}
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('security.login') }}">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
