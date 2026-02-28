@@ -283,6 +283,34 @@
         padding: 10px;
     }
 
+    /* Auto-reset notification */
+    .auto-reset-banner {
+        background: #8b5cf6;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        display: none;
+        text-align: center;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    }
+
+    .auto-reset-banner.show {
+        display: block;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar {
         width: 6px;
@@ -345,6 +373,11 @@
     <!-- Legend & Control Section -->
     <div class="legend-section">
         <div class="legend-title">Morse Code Detector</div>
+
+        <!-- Auto-reset notification banner -->
+        <div class="auto-reset-banner" id="autoResetBanner">
+            📢 Auto-reset: Word spoken after 5 seconds of inactivity
+        </div>
 
         <!-- Control Buttons -->
         <div class="controls-section">
@@ -425,7 +458,9 @@
 
     const lettersGrid = document.getElementById("lettersGrid");
     const numbersGrid = document.getElementById("numbersGrid");
+    const autoResetBanner = document.getElementById("autoResetBanner");
     let statusInterval = null;
+    let inactivityInterval = null;
 
     // Build morse reference
     function buildMorseReference() {
@@ -462,7 +497,9 @@
                 document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = false;
                 document.getElementById('resetBtn').disabled = false;
+                autoResetBanner.classList.add('show');
                 startStatusUpdates();
+                startInactivityCheck();
             }
         } catch (error) {
             console.error('Error:', error);
@@ -500,12 +537,14 @@
                 document.getElementById('pauseBtn').disabled = true;
                 document.getElementById('resetBtn').disabled = true;
                 document.getElementById('sendBtn').disabled = true;
+                autoResetBanner.classList.remove('show');
 
                 // Update pause button text
                 document.getElementById('pauseBtn').textContent = 'Pause';
 
-                // Clear status update interval
+                // Clear intervals
                 if (statusInterval) clearInterval(statusInterval);
+                if (inactivityInterval) clearInterval(inactivityInterval);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -559,6 +598,31 @@
         }, 500);
     }
 
+    function startInactivityCheck() {
+        inactivityInterval = setInterval(async () => {
+            try {
+                const response = await fetch('{{ url_for("morse.check_inactivity") }}');
+                const data = await response.json();
+
+                if (data.auto_reset && data.word_before_reset) {
+                    console.log('🔄 Auto-reset triggered! Word:', data.word_before_reset);
+
+                    // Speak the word that was auto-reset
+                    tts.speak(data.word_before_reset);
+
+                    // Update UI to show reset occurred
+                    document.getElementById('decodedWord').textContent = '—';
+                    document.getElementById('morsePattern').textContent = '—';
+                    document.getElementById('overlayWord').textContent = '—';
+                    document.getElementById('overlayMorse').textContent = '—';
+                    document.getElementById('sendBtn').disabled = true;
+                }
+            } catch (error) {
+                console.error('Error checking inactivity:', error);
+            }
+        }, 500); // Check every 500ms for responsive inactivity detection
+    }
+
     function addChatMessage(content, role) {
         const chatHistory = document.getElementById('chatHistory');
         const empty = chatHistory.querySelector('.empty-chat');
@@ -574,6 +638,7 @@
     window.addEventListener('beforeunload', () => {
         tts.stop();
         if (statusInterval) clearInterval(statusInterval);
+        if (inactivityInterval) clearInterval(inactivityInterval);
     });
 </script>
 {% endblock %}

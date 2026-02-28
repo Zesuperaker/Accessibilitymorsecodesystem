@@ -120,6 +120,24 @@ def get_status():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@morse_bp.route('/check_inactivity')
+def check_inactivity():
+    """Check for inactivity and auto-reset if threshold exceeded
+
+    Returns:
+        JSON: {
+            'auto_reset': bool (True if reset occurred),
+            'word_before_reset': str (word that was auto-reset)
+        }
+    """
+    try:
+        result = morse_state.check_and_handle_inactivity(inactivity_threshold=5.0)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error checking inactivity: {e}")
+        return jsonify({'auto_reset': False, 'word_before_reset': ''}), 500
+
+
 @morse_bp.route('/send', methods=['POST'])
 def send_to_ai():
     """Send detected message to AI

@@ -83,6 +83,55 @@ class MorseBlinkDetector:
                 'paused': self.is_paused,
             }
 
+    def check_and_handle_inactivity(self, inactivity_threshold=5.0):
+        """Check for inactivity and auto-reset if threshold exceeded
+
+        Args:
+            inactivity_threshold: Seconds of inactivity before auto-reset (default: 5)
+
+        Returns:
+            dict: {
+                'auto_reset': bool (True if reset occurred),
+                'word_before_reset': str (word that was reset)
+            }
+        """
+        with self.lock:
+            # Only check if detection is active and not paused
+            if not self.start_flag or self.is_paused:
+                return {
+                    'auto_reset': False,
+                    'word_before_reset': ''
+                }
+
+            # If no signals detected, no inactivity to check
+            if not self.current_word and not self.current_signals:
+                return {
+                    'auto_reset': False,
+                    'word_before_reset': ''
+                }
+
+            # Check if inactivity threshold exceeded
+            time_since_last_activity = perf_counter() - self.last_blink_end_time
+
+            if time_since_last_activity > inactivity_threshold:
+                # Capture word before reset
+                word_before_reset = self.current_word
+
+                # Reset state
+                self.current_signals = []
+                self.current_word = ''
+                self.morse_string = ''
+
+                return {
+                    'auto_reset': True,
+                    'word_before_reset': word_before_reset
+                }
+
+            return {
+                'auto_reset': False,
+                'word_before_reset': ''
+            }
+
     def process_eye_aspect_ratio(self, smooth_ratio, baseline):
         """Process EAR (Eye Aspect Ratio) to detect blinks and morse signals
 
