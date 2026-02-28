@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block title %}Morse Vision{% endblock %}
+{% block header_title %}Morse Code Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    main.container {
+        height: 100vh;
+        max-width: none;
+        padding: 0;
+        background: #0f172a;
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    .page-wrapper {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        height: 100%;
+    }
+
+    /* Camera Section */
+    .camera-section {
+        background: black;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .camera-section img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        color: white;
+        font-family: monospace;
+        font-size: 14px;
+        max-width: 300px;
+        border-left: 3px solid #3b82f6;
+    }
+
+    .overlay-label {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .overlay-value {
+        font-size: 16px;
+        font-weight: bold;
+        color: #93c5fd;
+        margin-bottom: 10px;
+    }
+
+    /* Legend Section */
+    .legend-section {
+        background: #111827;
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        font-family: system-ui, sans-serif;
+        height: 100%;
+        box-sizing: border-box;
+        overflow-y: auto;
+    }
+
+    .legend-title {
+        text-align: center;
+        font-size: 17px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Control Buttons */
+    .controls-section {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .btn-morse {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .btn-start {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .btn-start:hover:not(:disabled) {
+        background-color: #059669;
+        transform: scale(1.05);
+    }
+
+    .btn-pause {
+        background-color: #f59e0b;
+        color: white;
+    }
+
+    .btn-pause:hover:not(:disabled) {
+        background-color: #d97706;
+        transform: scale(1.05);
+    }
+
+    .btn-reset {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .btn-reset:hover:not(:disabled) {
+        background-color: #dc2626;
+        transform: scale(1.05);
+    }
+
+    .btn-morse:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Send Button */
+    .send-btn {
+        width: 100%;
+        padding: 8px 12px;
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 15px;
+    }
+
+    .send-btn:hover:not(:disabled) {
+        background-color: #2563eb;
+        transform: translateY(-1px);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Status Display */
+    .status-box {
+        background: #1f2937;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        border-left: 3px solid #3b82f6;
+    }
+
+    .status-label {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .status-value {
+        font-size: 14px;
+        font-weight: bold;
+        font-family: monospace;
+        color: #93c5fd;
+        word-break: break-all;
+    }
+
+    /* Legend Grid */
+    .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .morse-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .morse-item {
+        background: #1f2937;
+        padding: 6px 3px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .morse-letter {
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 2px;
+    }
+
+    .morse-code {
+        font-size: 11px;
+        font-family: monospace;
+        color: #93c5fd;
+        display: inline-block;
+        letter-spacing: 1px;
+    }
+
+    .divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 10px 0;
+    }
+
+    /* Chat History */
+    .chat-section {
+        margin-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+    }
+
+    .chat-history {
+        background: #1f2937;
+        border-radius: 4px;
+        padding: 8px;
+        max-height: 150px;
+        overflow-y: auto;
+        font-size: 11px;
+    }
+
+    .chat-message {
+        margin-bottom: 6px;
+        padding: 6px;
+        border-radius: 3px;
+        word-wrap: break-word;
+    }
+
+    .chat-user {
+        background: #3b82f6;
+        color: white;
+        text-align: right;
+    }
+
+    .chat-ai {
+        background: #10b981;
+        color: white;
+        text-align: left;
+    }
+
+    .empty-chat {
+        text-align: center;
+        opacity: 0.5;
+        padding: 10px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1f2937;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 3px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .page-wrapper {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr;
+        }
+
+        .legend-section {
+            max-height: 40vh;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .morse-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .morse-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .controls-section {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <!-- Camera Feed Section -->
+    <div class="camera-section">
+        <img id="videoStream" src="{{ url_for('morse.video_feed') }}" alt="Video stream">
+        
+        <!-- Camera Overlay with Status -->
+        <div class="camera-overlay">
+            <div class="overlay-label">Current Word:</div>
+            <div class="overlay-value" id="overlayWord">—</div>
+            <div class="overlay-label">Morse Signal:</div>
+            <div class="overlay-value" id="overlayMorse">—</div>
+        </div>
+    </div>
+
+    <!-- Legend & Control Section -->
+    <div class="legend-section">
+        <div class="legend-title">Morse Code Detector</div>
+
+        <!-- Control Buttons -->
+        <div class="controls-section">
+            <button class="btn-morse btn-start" id="startBtn" onclick="startDetection()">Start</button>
+            <button class="btn-morse btn-pause" id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
+            <button class="btn-morse btn-reset" id="resetBtn" onclick="resetDecoder()" disabled>Reset</button>
+        </div>
+
+        <!-- Send to AI Button -->
+        <button class="send-btn" id="sendBtn" onclick="sendToAI()" disabled>Send to AI</button>
+
+        <!-- Status Display -->
+        <div class="status-box">
+            <div class="status-label">Decoded Word</div>
+            <div class="status-value" id="decodedWord">—</div>
+        </div>
+
+        <div class="status-box">
+            <div class="status-label">Morse Pattern</div>
+            <div class="status-value" id="morsePattern">—</div>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider"></div>
+
+        <!-- Letters Reference -->
+        <div class="section-label">Letters</div>
+        <div class="morse-grid" id="lettersGrid"></div>
+
+        <!-- Numbers Reference -->
+        <div class="section-label">Numbers</div>
+        <div class="morse-grid" id="numbersGrid"></div>
+
+        <!-- Chat History -->
+        <div class="chat-section">
+            <div class="section-label">Conversation</div>
+            <div class="chat-history" id="chatHistory">
+                <div class="empty-chat">No messages yet</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const morseCode = {
+        A: ".-", B: "-...", C: "-.-.", D: "-..",
+        E: ".", F: "..-.", G: "--.", H: "....",
+        I: "..", J: ".---", K: "-.-", L: ".-..",
+        M: "--", N: "-.", O: "---", P: ".--.",
+        Q: "--.-", R: ".-.", S: "...", T: "-",
+        U: "..-", V: "...-", W: ".--", X: "-..-",
+        Y: "-.--", Z: "--..",
+        0: "-----", 1: ".----", 2: "..---",
+        3: "...--", 4: "....-", 5: ".....",
+        6: "-....", 7: "--...", 8: "---..",
+        9: "----."
+    };
+
+    const lettersGrid = document.getElementById("lettersGrid");
+    const numbersGrid = document.getElementById("numbersGrid");
+    let statusInterval = null;
+
+    // Build morse reference
+    function buildMorseReference() {
+        Object.entries(morseCode).forEach(([char, code]) => {
+            const div = document.createElement("div");
+            div.className = "morse-item";
+
+            const visual = code
+                .replace(/\./g, "·")
+                .replace(/-/g, "–");
+
+            div.innerHTML = `
+                <div class="morse-letter">${char}</div>
+                <div class="morse-code">${visual}</div>
+            `;
+
+            if (isNaN(char)) {
+                lettersGrid.appendChild(div);
+            } else {
+                numbersGrid.appendChild(div);
+            }
+        });
+    }
+
+    buildMorseReference();
+
+    // API Functions
+    async function startDetection() {
+        try {
+            const response = await fetch('{{ url_for("morse.start_detection") }}', { method: 'POST' });
+            const data = await response.json();
+
+            if (response.ok && data.status === 'active') {
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('resetBtn').disabled = false;
+                startStatusUpdates();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to start detection');
+        }
+    }
+
+    async function togglePause() {
+        try {
+            const response = await fetch('{{ url_for("morse.toggle_pause") }}', { method: 'POST' });
+            const data = await response.json();
+            if (response.ok) {
+                const btn = document.getElementById('pauseBtn');
+                btn.textContent = data.paused ? 'Resume' : 'Pause';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function resetDecoder() {
+        try {
+            const response = await fetch('{{ url_for("morse.reset") }}', { method: 'POST' });
+            if (response.ok) {
+                document.getElementById('decodedWord').textContent = '—';
+                document.getElementById('morsePattern').textContent = '—';
+                document.getElementById('overlayWord').textContent = '—';
+                document.getElementById('overlayMorse').textContent = '—';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function sendToAI() {
+        const word = document.getElementById('decodedWord').textContent;
+        if (!word || word === '—') return;
+
+        try {
+            const response = await fetch('{{ url_for("morse.send_to_ai") }}', { method: 'POST' });
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                addChatMessage(word, 'user');
+                addChatMessage(data.response, 'ai');
+                document.getElementById('decodedWord').textContent = '—';
+                document.getElementById('morsePattern').textContent = '—';
+                document.getElementById('overlayWord').textContent = '—';
+                document.getElementById('overlayMorse').textContent = '—';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function startStatusUpdates() {
+        statusInterval = setInterval(async () => {
+            try {
+                const response = await fetch('{{ url_for("morse.get_status") }}');
+                const data = await response.json();
+                
+                document.getElementById('decodedWord').textContent = data.word || '—';
+                document.getElementById('morsePattern').textContent = data.morse || '—';
+                document.getElementById('overlayWord').textContent = data.word || '—';
+                document.getElementById('overlayMorse').textContent = data.morse || '—';
+                document.getElementById('sendBtn').disabled = !data.word;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }, 500);
+    }
+
+    function addChatMessage(content, role) {
+        const chatHistory = document.getElementById('chatHistory');
+        const empty = chatHistory.querySelector('.empty-chat');
+        if (empty) empty.remove();
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message chat-${role}`;
+        messageDiv.textContent = content;
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (statusInterval) clearInterval(statusInterval);
+    });
+</script>
+{% endblock %}

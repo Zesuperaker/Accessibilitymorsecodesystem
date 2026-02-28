@@ -35,6 +35,13 @@ def create_app(config=None):
     app.config['SECURITY_SEND_PASSWORD_RESET_EMAIL'] = False
     app.config['SECURITY_SEND_PASSWORD_RESET_NOTICE_EMAIL'] = False
 
+    # Morse Code Detection Configuration
+    app.config['MISTRAL_API_URL'] = os.getenv(
+        'MISTRAL_API_URL',
+        'https://api.mistral.ai/v1/chat/completions'
+    )
+    app.config['MISTRAL_API_KEY'] = os.getenv('MISTRAL_API_KEY')
+
     if config:
         app.config.update(config)
 
