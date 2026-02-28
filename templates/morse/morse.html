@@ -332,7 +332,7 @@
     <!-- Camera Feed Section -->
     <div class="camera-section">
         <img id="videoStream" src="{{ url_for('morse.video_feed') }}" alt="Video stream">
-        
+
         <!-- Camera Overlay with Status -->
         <div class="camera-overlay">
             <div class="overlay-label">Current Word:</div>
@@ -391,6 +391,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/tts.js') }}"></script>
 <script>
     const morseCode = {
         A: ".-", B: "-...", C: "-.-.", D: "-..",
@@ -405,6 +406,22 @@
         6: "-....", 7: "--...", 8: "---..",
         9: "----."
     };
+
+    // Initialize Text-to-Speech
+    const tts = new TextToSpeech({
+        rate: 1.0,        // Normal speed
+        pitch: 1.0,       // Normal pitch
+        volume: 1.0,      // Full volume
+        language: 'en-US',
+        onStart: () => console.log('🔊 Speaking...'),
+        onEnd: () => console.log('✓ Speech ended'),
+        onError: (error) => console.error('TTS Error:', error)
+    });
+
+    // Check if TTS is supported
+    if (!TextToSpeech.isSupported()) {
+        console.warn('⚠️ Text-to-Speech not supported in this browser');
+    }
 
     const lettersGrid = document.getElementById("lettersGrid");
     const numbersGrid = document.getElementById("numbersGrid");
@@ -470,12 +487,15 @@
         try {
             const response = await fetch('{{ url_for("morse.reset") }}', { method: 'POST' });
             if (response.ok) {
+                // Stop any ongoing speech
+                tts.stop();
+
                 document.getElementById('decodedWord').textContent = '—';
                 document.getElementById('morsePattern').textContent = '—';
                 document.getElementById('overlayWord').textContent = '—';
                 document.getElementById('overlayMorse').textContent = '—';
 
-                // FIX: Re-enable start button and disable pause/reset buttons
+                // Re-enable start button and disable pause/reset buttons
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
                 document.getElementById('resetBtn').disabled = true;
@@ -497,12 +517,21 @@
         if (!word || word === '—') return;
 
         try {
+            // Speak the decoded word immediately
+            tts.speak(word);
+
             const response = await fetch('{{ url_for("morse.send_to_ai") }}', { method: 'POST' });
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
                 addChatMessage(word, 'user');
                 addChatMessage(data.response, 'ai');
+
+                // Speak the AI response after a brief delay
+                setTimeout(() => {
+                    tts.speak(data.response);
+                }, 800);
+
                 document.getElementById('decodedWord').textContent = '—';
                 document.getElementById('morsePattern').textContent = '—';
                 document.getElementById('overlayWord').textContent = '—';
@@ -518,7 +547,7 @@
             try {
                 const response = await fetch('{{ url_for("morse.get_status") }}');
                 const data = await response.json();
-                
+
                 document.getElementById('decodedWord').textContent = data.word || '—';
                 document.getElementById('morsePattern').textContent = data.morse || '—';
                 document.getElementById('overlayWord').textContent = data.word || '—';
@@ -543,6 +572,7 @@
     }
 
     window.addEventListener('beforeunload', () => {
+        tts.stop();
         if (statusInterval) clearInterval(statusInterval);
     });
 </script>
