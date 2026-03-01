@@ -46,7 +46,7 @@ class MorseBlinkDetector:
         """
         if not self.current_signals:
             return ''
-        if len(self.current_signals) > 4:
+        if len(self.current_signals) > 3.7:
             return '?'
 
         trace = 1
@@ -139,7 +139,7 @@ class MorseBlinkDetector:
             smooth_ratio: Current smoothed EAR value
             baseline: Baseline EAR for this session
         """
-        blink_threshold = 4.3
+        blink_threshold = 4.1
 
         with self.lock:
             if (baseline - smooth_ratio) > blink_threshold:
@@ -153,7 +153,7 @@ class MorseBlinkDetector:
                     duration = perf_counter() - self.blink_start_time
                     self.last_blink_end_time = perf_counter()
 
-                    if duration < 0.30:  # Dot
+                    if duration < 0.3:  # Dot
                         self.current_signals.append(0)
                         self.morse_string += "."
                     elif duration < 1.5:  # Dash
